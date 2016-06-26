@@ -67,6 +67,8 @@
             this.label11 = new System.Windows.Forms.Label();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.txtBlockTimeNum = new System.Windows.Forms.TextBox();
+            this.btnAdaptOffsetTime = new System.Windows.Forms.Button();
             this.textBox15 = new System.Windows.Forms.TextBox();
             this.label16 = new System.Windows.Forms.Label();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
@@ -87,7 +89,6 @@
             this.button8 = new System.Windows.Forms.Button();
             this.label17 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
-            this.btnAdaptOffsetTime = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -464,6 +465,7 @@
             // 
             // groupBox4
             // 
+            this.groupBox4.Controls.Add(this.txtBlockTimeNum);
             this.groupBox4.Controls.Add(this.btnAdaptOffsetTime);
             this.groupBox4.Controls.Add(this.textBox15);
             this.groupBox4.Controls.Add(this.label16);
@@ -481,6 +483,24 @@
             this.groupBox4.TabIndex = 19;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Config Setting";
+            // 
+            // txtBlockTimeNum
+            // 
+            this.txtBlockTimeNum.Location = new System.Drawing.Point(178, 20);
+            this.txtBlockTimeNum.Name = "txtBlockTimeNum";
+            this.txtBlockTimeNum.Size = new System.Drawing.Size(46, 20);
+            this.txtBlockTimeNum.TabIndex = 11;
+            this.txtBlockTimeNum.Text = "10";
+            // 
+            // btnAdaptOffsetTime
+            // 
+            this.btnAdaptOffsetTime.Location = new System.Drawing.Point(313, 14);
+            this.btnAdaptOffsetTime.Name = "btnAdaptOffsetTime";
+            this.btnAdaptOffsetTime.Size = new System.Drawing.Size(105, 23);
+            this.btnAdaptOffsetTime.TabIndex = 10;
+            this.btnAdaptOffsetTime.Text = "Adapt Offset Time";
+            this.btnAdaptOffsetTime.UseVisualStyleBackColor = true;
+            this.btnAdaptOffsetTime.Click += new System.EventHandler(this.btnAdaptOffsetTime_Click);
             // 
             // textBox15
             // 
@@ -670,16 +690,6 @@
             this.textBox17.TabIndex = 26;
             this.textBox17.Text = "78472346b1730205117f1c90fc48a304";
             // 
-            // btnAdaptOffsetTime
-            // 
-            this.btnAdaptOffsetTime.Location = new System.Drawing.Point(294, 18);
-            this.btnAdaptOffsetTime.Name = "btnAdaptOffsetTime";
-            this.btnAdaptOffsetTime.Size = new System.Drawing.Size(124, 23);
-            this.btnAdaptOffsetTime.TabIndex = 10;
-            this.btnAdaptOffsetTime.Text = "Adapt Offset Time";
-            this.btnAdaptOffsetTime.UseVisualStyleBackColor = true;
-            this.btnAdaptOffsetTime.Click += new System.EventHandler(this.btnAdaptOffsetTime_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -780,6 +790,7 @@
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.TextBox textBox17;
         private System.Windows.Forms.Button btnAdaptOffsetTime;
+        private System.Windows.Forms.TextBox txtBlockTimeNum;
     }
 }
 

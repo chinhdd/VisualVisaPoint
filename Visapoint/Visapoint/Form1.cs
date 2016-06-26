@@ -14,11 +14,14 @@ using System.Web;
 using System.IO;
 using System.Net;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Visapoint
 {
     public partial class Form1 : Form
     {
+
+        private string thread_num_v01="";
         private string country_csvfile_path = "";
         private string firstname = "";
         private string family = "";
@@ -34,16 +37,79 @@ namespace Visapoint
         private string logdirpath = "";
         private string proxydelaytime = "";
         private string timedelay = "";
+        double offset_time_v01 = 0;
         public Form1()
         {
             InitializeComponent();
         }
-        private double measureTimeOffset(string threadnum,HttpClient httpClient)
+        private double adaptOffSetTime()
+        {
+            System.Net.Http.HttpClient httpClient = new HttpClient();
+            double time_offset = 0;
+
+            int loop_num = Convert.ToInt32(txtBlockTimeNum.Text);
+            double avg_msg_transmit = 0, avg_server_time_block = 0;
+            List<int> server_second_results = new List<int>();
+            Console.Out.WriteLine("loopnum" + loop_num);
+            int server_result_count = 0;
+            for (int i = 1; i <= loop_num; i++)
+            {
+
+                string request_time = DateTime.Now.ToString("s.fffffff");
+                var result = httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, "https://visapoint.eu/disclaimer")).Result;
+                int responsesecond = result.Headers.Date.Value.Second;
+                string post_time = DateTime.Now.ToString("s.fffffff");
+
+                avg_msg_transmit += Math.Abs(Convert.ToDouble(request_time) - Convert.ToDouble(post_time)) / 2;
+
+                if (server_second_results.Count > 0)
+                {
+                    if (responsesecond != server_second_results[0])
+                    {
+
+                        avg_server_time_block += 1 / server_second_results.Count;
+                        server_second_results.Clear();
+                        server_second_results.Add(responsesecond);
+                        server_result_count++;
+
+                    }
+                    else
+                    {
+                        server_second_results.Add(responsesecond);
+                    }
+                }
+                else
+                {
+
+                    server_second_results.Add(responsesecond);
+                    server_result_count++;
+                }
+
+                result.Dispose();
+                Console.Out.WriteLine(i + ")" + "request time: " + request_time + "," + "server_response_second: " + responsesecond + "," + "current_response_second: " + post_time);
+
+                //if (Convert.ToDouble(post_time) > responsesecond + (tick2 - tick1) / 2)
+                //{
+                //    time_offset = responsesecond + ((tick2 - tick1) / 2000) + 60 - Convert.ToDouble(post_time);
+                //}
+                //else
+                //    time_offset = responsesecond + ((tick2 - tick1) / 2000) - Convert.ToDouble(post_time);
+
+                //if (time_offset < 0)
+                //    time_offset = 60 + time_offset;
+                //echolog(threadnum, "Time Offset Set To " + time_offset.ToString());
+            }
+            avg_msg_transmit /= Convert.ToInt32(txtBlockTimeNum.Text);
+            avg_server_time_block /= server_result_count;
+            Console.Out.WriteLine("avg_msg_transmit: " + avg_msg_transmit + "avg_server_time_block: " + avg_server_time_block);
+            return time_offset;
+        }
+        private double measureTimeOffset(string threadnum, HttpClient httpClient)
         {
             double time_offset = 0;
             echolog(threadnum, "Measure Time Offset");
             int tick1 = Environment.TickCount & Int32.MaxValue;
-            var result = httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, "https://visapoint.eu/disclaimer")).Result; 
+            var result = httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, "https://visapoint.eu/disclaimer")).Result;
             int responsesecond = result.Headers.Date.Value.Second;
             string post_time = DateTime.Now.ToString("s.fffffff");
             int tick2 = Environment.TickCount & Int32.MaxValue;
@@ -60,7 +126,7 @@ namespace Visapoint
             echolog(threadnum, "Time Offset Set To " + time_offset.ToString());
             return time_offset;
         }
-        private void echolog(string threadid,string echolog)
+        private void echolog(string threadid, string echolog)
         {
 
             string nowtime = DateTime.Now.ToString("hh:mm:ss.fffffff");
@@ -75,17 +141,17 @@ namespace Visapoint
         {
             try
             {
-                int proxystarttime = 0; 
-                if(proxydelaytime != "all" && proxydelaytime != "")
+                int proxystarttime = 0;
+                if (proxydelaytime != "all" && proxydelaytime != "")
                 {
                     proxystarttime = Convert.ToInt32(DateTime.Now.ToString("mm"));
                 }
-//                DBC dbc = new DBC("fujiwakama", "Anhyeuem88");
-//                string balance = dbc.GetBalance();
+                //                DBC dbc = new DBC("fujiwakama", "Anhyeuem88");
+                //                string balance = dbc.GetBalance();
                 _2Captcha capt = new _2Captcha(textBox17.Text.ToString());
                 string balance = capt.GetBalance();
 
-                double time_offset = measureTimeOffset(threadnum.ToString(), httpClient);
+                double time_offset = offset_time_v01;
 
                 echolog(threadnum, "Bypassing Disclaimer, Load Disclaimer");
 
@@ -198,7 +264,7 @@ namespace Visapoint
                 postData2.Add(new KeyValuePair<string, string>("ctl00_cp1_btnNext_ClientState", "{\"text\":\"Next\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"next\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false}"));
                 echolog(threadnum, "Prepare Checkpoint");
 
-                waitUntilValidTime(threadnum,time_offset);
+                waitUntilValidTime(threadnum, time_offset);
 
                 echolog(threadnum, "Reselect Visa Type");
 
@@ -272,7 +338,7 @@ namespace Visapoint
                 postData3.Add(new KeyValuePair<string, string>("ctl00_cp1_" + capparam + "_ClientState", KJPLMLSYNX));
                 postData3.Add(new KeyValuePair<string, string>("LBD_VCID_c_pages_form_cp1_captcha1", lbd));
                 postData3.Add(new KeyValuePair<string, string>("ctl00_cp1_btnNext_ClientState", "{\"text\":\"Next\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"next\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false}"));
-                waitToPost(threadnum,time_offset);
+                waitToPost(threadnum, time_offset);
                 echolog(threadnum, "Search For Slot");
                 string time_submit = DateTime.Now.ToString("s.fffffff");
                 result = httpClient.PostAsync("https://visapoint.eu/form", new MyFormUrlEncodedContent(postData3)).Result;
@@ -293,7 +359,7 @@ namespace Visapoint
                 if (slot != "")
                 {
                     echolog(threadnum, "Slot available!");
-                    return postFinalStep(slot,strContent,threadnum,httpClient, country,  eventarg,  ddCitizenship,  ddCitizenshipCS,  ddEmbassy,  ddEmbassyCS,  visatype,  visaarg,  visatypenum);                    
+                    return postFinalStep(slot, strContent, threadnum, httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum);
                 }
                 double time_process = 0;
                 if (no_slot_date != "")
@@ -312,7 +378,7 @@ namespace Visapoint
                     if (no_slot_date.Split(':')[2] == "00")
                         time_offset = time_offset + Convert.ToDouble(textBox13.Text);
                 }
-                string returnvalue = SecondPost(proxystarttime,postData2,time_offset,strContent,threadnum, httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum);
+                string returnvalue = SecondPost(proxystarttime, postData2, time_offset, strContent, threadnum, httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum);
                 if (returnvalue == "0")
                 {
                     return false;
@@ -337,14 +403,14 @@ namespace Visapoint
                         time_offset = time_offset + (Convert.ToDouble(textBox13.Text) * 10);
                 }
 
-                while(true)
+                while (true)
                 {
-                    returnvalue = SecondPost(proxystarttime,postData2,time_offset, returnvalue, threadnum, httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum);
-                    if(returnvalue == "0")
+                    returnvalue = SecondPost(proxystarttime, postData2, time_offset, returnvalue, threadnum, httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum);
+                    if (returnvalue == "0")
                     {
                         return false;
                     }
-                    if(returnvalue == "1")
+                    if (returnvalue == "1")
                     {
                         return true;
                     }
@@ -362,21 +428,21 @@ namespace Visapoint
                         if (no_slot_date.Split(':')[2] == "01")
                             time_offset = time_offset + (Convert.ToDouble(textBox13.Text) * 10);
                     }
-                    Thread.Sleep(100);               
+                    Thread.Sleep(100);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 echolog(threadnum, ex.ToString());
                 return false;
             }
         }
 
-        private string SecondPost(int proxytime,List<KeyValuePair<string, string>> postData2,double time_offset,string returnhtml,string threadnum, HttpClient httpClient, string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
+        private string SecondPost(int proxytime, List<KeyValuePair<string, string>> postData2, double time_offset, string returnhtml, string threadnum, HttpClient httpClient, string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
         {
             try
             {
-                if(proxytime != 0)
+                if (proxytime != 0)
                 {
                     int cometime = 0;
                     int nowmin = Convert.ToInt32(DateTime.Now.ToString("mm"));
@@ -390,8 +456,8 @@ namespace Visapoint
                         return "0";
                 }
 
-//                DBC dbc = new DBC("fujiwakama", "Anhyeuem88");
-//                string balance = dbc.GetBalance();                
+                //                DBC dbc = new DBC("fujiwakama", "Anhyeuem88");
+                //                string balance = dbc.GetBalance();                
                 _2Captcha capt = new _2Captcha(textBox17.Text.ToString());
                 string balance = capt.GetBalance();
 
@@ -504,7 +570,7 @@ namespace Visapoint
                 echolog("0", "Process Time: " + time_process);
                 return strContent;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 echolog(threadnum, ex.ToString());
                 return "0";
@@ -513,37 +579,37 @@ namespace Visapoint
         private void waitUntilValidTime(string threadnum, double time_offset)
         {
             echolog(threadnum, "Wait Until Valid Time");
-            while(true)
+            while (true)
             {
                 string now = DateTime.Now.ToString("s.fffffff");
                 double current = Convert.ToDouble(now) + time_offset;
-                if (current >= 60)
-                    current = current - 60;
-                if (current >= Convert.ToDouble(textBox10.Text) - 19 && current <= Convert.ToDouble(textBox10.Text) - 15)
-                    return;
-                Thread.Sleep(1);
+                //if (current >= 60)
+                //    current = current - 60;
+                //if (current >= Convert.ToDouble(textBox10.Text) - 19 && current <= Convert.ToDouble(textBox10.Text) - 15)
+                //    return;
+                //Thread.Sleep(1);
             }
         }
 
-        private void waitToPost(string threadnum,double time_offset)
+        private void waitToPost(string threadnum, double time_offset)
         {
             echolog(threadnum, "Wait To Post");
-            while(true)
+            while (true)
             {
                 string now = DateTime.Now.ToString("s.fffffff");
                 double current = Convert.ToDouble(now) + time_offset;
-                if (current >= 60)
-                    current = current - 60;
-                if (current >= Convert.ToDouble(textBox10.Text))
-                    break;
-                Thread.Sleep(1);
+                //if (current >= 60)
+                //    current = current - 60;
+                //if (current >= Convert.ToDouble(textBox10.Text))
+                //    break;
+                //Thread.Sleep(1);
             }
         }
-        private bool postFinalStep(string slot,string strContent, string threadnum, HttpClient httpClient, string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
+        private bool postFinalStep(string slot, string strContent, string threadnum, HttpClient httpClient, string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
         {
             try
             {
-                echolog(threadnum,"Post Final Step");
+                echolog(threadnum, "Post Final Step");
                 /////////////////////////////adddddd param/////////////////////////////////////
                 string txtfirstname = "{\"enabled\":true,\"emptyMessage\":\"Fill in your first name(s)\",\"validationText\":\"" + firstname + "\",\"valueAsString\":\"" + firstname + "\",\"lastSetTextBoxValue\":\"" + firstname + "\"}";
                 string txtfamily = "{\"enabled\":true,\"emptyMessage\":\"Fill in your Family Name(s)\",\"validationText\":\"" + family + "\",\"valueAsString\":\"" + family + "\",\"lastSetTextBoxValue\":\"" + family + "\"}";
@@ -635,22 +701,22 @@ namespace Visapoint
                 }
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 echolog("0", ex.ToString());
                 return false;
             }
         }
-        private void ProcessThread(int threadnum,string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
+        private void ProcessThread(int threadnum, string country, string eventarg, string ddCitizenship, string ddCitizenshipCS, string ddEmbassy, string ddEmbassyCS, string visatype, string visaarg, string visatypenum)
         {
             string starttime = "";
             string endtime = "";
-            if(working_timing != "All")
+            if (working_timing != "All")
             {
                 string[] se = working_timing.Split('-');
                 starttime = se[0];
                 endtime = se[1];
-                while(true)
+                while (true)
                 {
                     string now = DateTime.Now.ToString("HHmm");
                     if (Convert.ToInt32(starttime) >= Convert.ToInt32(now))
@@ -659,7 +725,7 @@ namespace Visapoint
                 }
             }
             int i = 0;
-            while(true)
+            while (true)
             {
                 Random r = new Random();
                 System.Net.Http.HttpClient httpClient = null;
@@ -682,11 +748,11 @@ namespace Visapoint
                 httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Connection", "keep-alive");
                 httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Host", "visapoint.eu");
                 if (FirstPost(threadnum.ToString(), httpClient, country, eventarg, ddCitizenship, ddCitizenshipCS, ddEmbassy, ddEmbassyCS, visatype, visaarg, visatypenum))
-                {                
+                {
                     echolog(threadnum.ToString(), threadnum.ToString() + " thread exist successfully!");
                     threadlist.RemoveAt(threadnum);
                     return;
-                 }
+                }
                 else
                 {
                     if (proxydelaytime == "")
@@ -697,26 +763,26 @@ namespace Visapoint
                     }
                 }
                 i++;
-                if(endtime != "")
+                if (endtime != "")
                 {
                     string now = DateTime.Now.ToString("HHmm");
                     if (Convert.ToInt32(endtime) <= Convert.ToInt32(now))
                         return;
                 }
-            }   
+            }
         }
         private void button1_Click(object sender, EventArgs e)
         {
             button1.Enabled = false;
             button5.Enabled = true;
-            if(textBox10.Text == "")
+            if (textBox10.Text == "")
             {
                 MessageBox.Show("Please input post time!");
                 button1.Enabled = true;
                 button5.Enabled = false;
                 return;
             }
-            if(useragentlist.Count == 0)
+            if (useragentlist.Count == 0)
             {
                 MessageBox.Show("Please input Agent list txt file!");
                 button1.Enabled = true;
@@ -730,24 +796,24 @@ namespace Visapoint
                 button5.Enabled = false;
                 return;
             }
-            
-            if(textBox2.Text == "" && textBox3.Text == "" && textBox4.Text == "" && textBox5.Text == "" && textBox6.Text == "" && textBox7.Text == "")
+
+            if (textBox2.Text == "" && textBox3.Text == "" && textBox4.Text == "" && textBox5.Text == "" && textBox6.Text == "" && textBox7.Text == "")
             {
                 MessageBox.Show("Profile information input!");
                 button1.Enabled = true;
                 button5.Enabled = false;
                 return;
             }
-            if(listView2.Items.Count == 0)
+            if (listView2.Items.Count == 0)
             {
                 MessageBox.Show("No selected country!");
                 button1.Enabled = true;
                 button5.Enabled = false;
                 return;
             }
-            if(radioButton1.Checked)
+            if (radioButton1.Checked)
             {
-                if(proxylist.Count == 0) 
+                if (proxylist.Count == 0)
                 {
                     MessageBox.Show("No existing Proxylist!");
                     button1.Enabled = true;
@@ -756,8 +822,8 @@ namespace Visapoint
                 }
                 if (comboBox2.SelectedIndex == 0)
                 {
-                    proxydelaytime = "all";                    
-                }                    
+                    proxydelaytime = "all";
+                }
                 else
                 {
                     proxydelaytime = textBox16.Text.ToString();
@@ -795,27 +861,28 @@ namespace Visapoint
             phonenumber = textBox7.Text.ToString();
             richTextBox1.AppendText("Program start......\r\n");
             int i = 0;
-            StreamReader sr = new StreamReader(country_csvfile_path,false);
+            StreamReader sr = new StreamReader(country_csvfile_path, false);
             while (!sr.EndOfStream)
             {
                 string s = sr.ReadLine();
                 string[] temp = s.Split(',');
-                foreach(ListViewItem view in listView2.Items)
+                foreach (ListViewItem view in listView2.Items)
                 {
                     if (view.Text.Contains(temp[0]) && view.Text.Contains(temp[6]))
                     {
                         Thread thread = new Thread(delegate()
                         {
-                            ProcessThread(i,temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7], temp[8]);
+                            thread_num_v01 = i.ToString();
+                            ProcessThread(i, temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7], temp[8]);
                         });
                         thread.Start();
-                        Thread.Sleep(1000);
+                        // Thread.Sleep(1000);
                         threadlist.Add(thread);
                         i++;
                     }
-                }                
-            }            
-            if(threadlist.Count == 0)
+                }
+            }
+            if (threadlist.Count == 0)
             {
                 button1.Enabled = true;
                 button5.Enabled = false;
@@ -824,11 +891,11 @@ namespace Visapoint
             textBox11.Text = threadlist.Count.ToString();
             new Thread(GetThreadStatus).Start();
         }
-        
+
         private void GetThreadStatus()
         {
             int i = 0;
-            while(true)
+            while (true)
             {
                 string starttime = "";
                 string endtime = "";
@@ -846,7 +913,7 @@ namespace Visapoint
                     }
                 }
                 i = 0;
-                foreach(Thread thread in threadlist)
+                foreach (Thread thread in threadlist)
                 {
                     if (thread.IsAlive)
                         i++;
@@ -862,7 +929,7 @@ namespace Visapoint
                         button1.Enabled = true;
                         button5.Enabled = false;
                     }
-                    ));                    
+                    ));
                     return;
                 }
                 else
@@ -905,10 +972,10 @@ namespace Visapoint
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
             textBox1.Visible = true;
-            button9.Visible = true;            
+            button9.Visible = true;
             comboBox2.Visible = true;
             textBox15.Enabled = false;
-            if(comboBox2.SelectedIndex == 1)
+            if (comboBox2.SelectedIndex == 1)
                 textBox16.Visible = true;
             else
                 textBox16.Visible = false;
@@ -946,7 +1013,7 @@ namespace Visapoint
 
         private void button3_Click(object sender, EventArgs e)
         {
-            foreach(ListViewItem view in listView1.SelectedItems)
+            foreach (ListViewItem view in listView1.SelectedItems)
             {
                 listView2.Items.Add(view.Text);
                 listView1.Items.Remove(view);
@@ -970,7 +1037,7 @@ namespace Visapoint
 
         private void textBox4_Leave(object sender, EventArgs e)
         {
-            if(textBox4.Text.Trim().Length==0)
+            if (textBox4.Text.Trim().Length == 0)
             {
                 textBox4.ForeColor = Color.LightGray;
                 textBox4.Text = "1996-03-01";
@@ -999,7 +1066,7 @@ namespace Visapoint
 
         private void button5_Click(object sender, EventArgs e)
         {
-            foreach(Thread thread in threadlist)
+            foreach (Thread thread in threadlist)
             {
                 thread.Abort();
             }
@@ -1017,7 +1084,7 @@ namespace Visapoint
             {
                 textBox12.Text = openFileDialog1.FileName;
                 string[] agentlist = System.IO.File.ReadAllLines(openFileDialog1.FileName);
-                foreach(string str in agentlist)
+                foreach (string str in agentlist)
                 {
                     useragentlist.Add(str);
                 }
@@ -1075,15 +1142,14 @@ namespace Visapoint
             }
             else
             {
-                textBox16.Visible = true;                
+                textBox16.Visible = true;
             }
         }
-
-        private void btnAdaptOffsetTime_Click(object sender, EventArgs e)
+        private double adaptOffsetTime_v01(string threadnum, HttpClient httpClient)
         {
-            System.Net.Http.HttpClient httpClient = new HttpClient();
-            
-            int loop_num = 100;
+            if (threadnum != "")
+                echolog(threadnum, "Measure Time Offset");
+            int loop_num = 1000 / Convert.ToInt32(txtBlockTimeNum.Text);
             Console.Out.WriteLine("loopnum" + loop_num);
             double dyMin = 0;
             double dyMax = 1;
@@ -1100,7 +1166,7 @@ namespace Visapoint
 
                 int tick2 = Environment.TickCount & Int32.MaxValue;
                 result.Dispose();
-                Console.Out.WriteLine(i + ")" + "request time: " + request_time + "," + "server_response_second: " + responsesecond + "," + "current_response_second: " + post_time);
+                //Console.Out.WriteLine(i + ")" + "request time: " + request_time + "," + "server_response_second: " + responsesecond + "," + "current_response_second: " + post_time);
 
                 if (i == 2)
                 {
@@ -1129,7 +1195,7 @@ namespace Visapoint
                 }
 
             }//end for 100 loop
-            Console.Out.WriteLine("dyMin: " + dyMin + ", dyMax: " + dyMax);
+            //Console.Out.WriteLine("dyMin: " + dyMin + ", dyMax: " + dyMax);
             double distanceSyn = pivotSecond + dyMax - pivot;
             if (distanceSyn < 0)
             {
@@ -1139,7 +1205,39 @@ namespace Visapoint
             {
                 distanceSyn = distanceSyn - 60;
             }
-            Console.Out.WriteLine("distanceSyn: " + distanceSyn);
+            //Console.Out.WriteLine("distanceSyn: " + distanceSyn);
+            string nowtime = DateTime.Now.ToString("hh:mm:ss.fffffff");
+            this.Invoke(new MethodInvoker(
+           delegate
+           {
+               richTextBox1.AppendText("[" + nowtime + "] - " + "Time Offset Set To" +distanceSyn.ToString()+ "\r\n");
+           }
+          ));
+            
+            return distanceSyn;
+        }
+        private void btnAdaptOffsetTime_Click(object sender, EventArgs e)
+        {
+            string nowtime = DateTime.Now.ToString("hh:mm:ss.fffffff");
+
+            this.Invoke(new MethodInvoker(
+            delegate
+           {
+               richTextBox1.AppendText(  "[" + nowtime + "] - " +"measure offset time" + "\r\n");
+           }
+           ));
+            System.Net.Http.HttpClient httpClient = new HttpClient();
+           offset_time_v01= adaptOffsetTime_v01("",httpClient);
+
+           
+           this.Invoke(new MethodInvoker(
+           delegate
+           {
+               richTextBox1.AppendText(  "[" + nowtime + "] - " + "wait for at least  a minute" + "\r\n");
+           }
+           ));
+           Thread.Sleep(65000);
+            
         }
     }
 }
