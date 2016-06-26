@@ -87,6 +87,7 @@
             this.button8 = new System.Windows.Forms.Button();
             this.label17 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
+            this.btnAdaptOffsetTime = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -463,6 +464,7 @@
             // 
             // groupBox4
             // 
+            this.groupBox4.Controls.Add(this.btnAdaptOffsetTime);
             this.groupBox4.Controls.Add(this.textBox15);
             this.groupBox4.Controls.Add(this.label16);
             this.groupBox4.Controls.Add(this.groupBox5);
@@ -668,6 +670,16 @@
             this.textBox17.TabIndex = 26;
             this.textBox17.Text = "78472346b1730205117f1c90fc48a304";
             // 
+            // btnAdaptOffsetTime
+            // 
+            this.btnAdaptOffsetTime.Location = new System.Drawing.Point(294, 18);
+            this.btnAdaptOffsetTime.Name = "btnAdaptOffsetTime";
+            this.btnAdaptOffsetTime.Size = new System.Drawing.Size(124, 23);
+            this.btnAdaptOffsetTime.TabIndex = 10;
+            this.btnAdaptOffsetTime.Text = "Adapt Offset Time";
+            this.btnAdaptOffsetTime.UseVisualStyleBackColor = true;
+            this.btnAdaptOffsetTime.Click += new System.EventHandler(this.btnAdaptOffsetTime_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -767,6 +779,7 @@
         private System.Windows.Forms.ComboBox comboBox2;
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.TextBox textBox17;
+        private System.Windows.Forms.Button btnAdaptOffsetTime;
     }
 }
 

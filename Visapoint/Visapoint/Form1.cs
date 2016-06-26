@@ -1078,5 +1078,68 @@ namespace Visapoint
                 textBox16.Visible = true;                
             }
         }
+
+        private void btnAdaptOffsetTime_Click(object sender, EventArgs e)
+        {
+            System.Net.Http.HttpClient httpClient = new HttpClient();
+            
+            int loop_num = 100;
+            Console.Out.WriteLine("loopnum" + loop_num);
+            double dyMin = 0;
+            double dyMax = 1;
+            double pivot = 0;
+            int pivotSecond = 0;
+            for (int i = 1; i <= loop_num; i++)
+            {
+                int tick1 = Environment.TickCount & Int32.MaxValue;
+                string request_time = DateTime.Now.ToString("s.fffffff");
+                var result = httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, "https://visapoint.eu/disclaimer")).Result;
+                int responsesecond = result.Headers.Date.Value.Second;
+                string post_time = DateTime.Now.ToString("s.fffffff");
+                double post_mili = Convert.ToDouble(post_time) / 10000;
+
+                int tick2 = Environment.TickCount & Int32.MaxValue;
+                result.Dispose();
+                Console.Out.WriteLine(i + ")" + "request time: " + request_time + "," + "server_response_second: " + responsesecond + "," + "current_response_second: " + post_time);
+
+                if (i == 2)
+                {
+                    pivot = System.Convert.ToDouble(request_time);
+                    pivotSecond = responsesecond;
+                    dyMin = 0;
+                    dyMax = 1;
+                }
+                else if (i > 2)
+                {
+                    int distanceSecond = responsesecond - pivotSecond;
+                    if (distanceSecond < 0)
+                    {
+                        distanceSecond += 60;
+                    }
+                    double newDyMin = distanceSecond + pivot - System.Convert.ToDouble(request_time);
+                    if (newDyMin > dyMin && newDyMin < dyMax)
+                    {
+                        dyMin = newDyMin;
+                    }
+                    double newDyMax = newDyMin + 1;
+                    if (newDyMax < dyMax && newDyMax > dyMin)
+                    {
+                        dyMax = newDyMax;
+                    }
+                }
+
+            }//end for 100 loop
+            Console.Out.WriteLine("dyMin: " + dyMin + ", dyMax: " + dyMax);
+            double distanceSyn = pivotSecond + dyMax - pivot;
+            if (distanceSyn < 0)
+            {
+                distanceSyn = distanceSyn + 60;
+            }
+            else if (distanceSyn > 60)
+            {
+                distanceSyn = distanceSyn - 60;
+            }
+            Console.Out.WriteLine("distanceSyn: " + distanceSyn);
+        }
     }
 }
